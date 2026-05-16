@@ -1,0 +1,17 @@
+target:
+  url: "https://www.ququmh.top/book/3137"
+
+crawl:
+  chapter_order: "desc"
+  max_chapters: 32
+  download_images: true
+
+storage:
+  output_dir: "downloads"
+  database: "data/crawler.sqlite3"
+
+request:
+  obey_robots_txt: true
+  concurrent_requests_per_domain: 1
+  download_delay: 2
+  timeout: 20
