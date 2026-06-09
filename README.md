@@ -73,6 +73,34 @@ python clean_data.py --config config.yaml --dry-run
 python clean_data.py --config config.yaml --yes
 ```
 
+## 本地预览图片
+
+启动本地预览网站：
+
+```bash
+python viewer_server.py --port 8000
+```
+
+打开：
+
+```text
+http://127.0.0.1:8000
+```
+
+默认预览目录：
+
+```text
+downloads/ququmh.top/book_3137_一人之下/chapters
+```
+
+也可以指定目录：
+
+```bash
+python viewer_server.py \
+  --chapters-dir "/Users/echo/Documents/视频工具/comic_crawler/downloads/ququmh.top/book_3137_一人之下/chapters" \
+  --port 8000
+```
+
 ## 输出结构
 
 图片和 JSON 元数据会按网站结构保存：
