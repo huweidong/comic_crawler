@@ -450,6 +450,14 @@ class ViewerHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
+class QuietThreadingHTTPServer(ThreadingHTTPServer):
+    def handle_error(self, request, client_address) -> None:
+        exception = getattr(__import__("sys").exc_info()[1], "errno", None)
+        if exception in {57, 54, 32}:
+            return
+        super().handle_error(request, client_address)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Preview downloaded comic images locally.")
     parser.add_argument("--host", default="127.0.0.1", help="Bind host.")
@@ -466,9 +474,11 @@ def main() -> None:
     args = parse_args()
     chapters_dir = Path(args.chapters_dir).expanduser().resolve()
     handler = type("ConfiguredViewerHandler", (ViewerHandler,), {"chapters_dir": chapters_dir})
-    server = ThreadingHTTPServer((args.host, args.port), handler)
+    server = QuietThreadingHTTPServer((args.host, args.port), handler)
     print(f"Previewing: {chapters_dir}")
     print(f"Open: http://{args.host}:{args.port}")
+    if args.host == "0.0.0.0":
+        print(f"LAN:  http://<your-mac-lan-ip>:{args.port}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

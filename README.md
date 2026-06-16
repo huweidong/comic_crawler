@@ -75,6 +75,32 @@ python clean_data.py --config config.yaml --yes
 
 ## 本地预览图片
 
+### 快速脚本
+
+启动爬虫：
+
+```bash
+./start_crawler.sh
+```
+
+启动预览服务（后台运行）：
+
+```bash
+./start_viewer.sh
+```
+
+关闭预览服务：
+
+```bash
+./stop_viewer.sh
+```
+
+预览服务日志保存在：
+
+```text
+logs/viewer.log
+```
+
 启动本地预览网站：
 
 ```bash
@@ -85,6 +111,18 @@ python viewer_server.py --port 8000
 
 ```text
 http://127.0.0.1:8000
+```
+
+同一 Wi-Fi 下手机访问时，推荐用系统 Python 启动，避免 Homebrew/虚拟环境 Python 被 macOS 防火墙识别拦截：
+
+```bash
+/usr/bin/python3 viewer_server.py --host 0.0.0.0 --port 8000
+```
+
+然后在电脑或手机浏览器打开电脑的局域网地址，例如：
+
+```text
+http://192.168.10.16:8000
 ```
 
 默认预览目录：
