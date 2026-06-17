@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>漫画图片预览</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="side-head">
+        <h1 id="bookTitle">漫画图片预览</h1>
+        <div class="chapter-count" id="chapterCount">正在加载章节...</div>
+      </div>
+      <div class="chapter-list" id="chapterList"></div>
+    </aside>
+    <main class="main">
+      <div class="toolbar">
+        <div class="toolbar-title" id="currentTitle">请选择章节</div>
+        <button id="refreshButton" type="button">刷新</button>
+        <button id="prevButton" type="button">上一章</button>
+        <button id="nextButton" type="button">下一章</button>
+        <select id="orderSelect" aria-label="章节排序">
+          <option value="desc">倒序</option>
+          <option value="asc">正序</option>
+        </select>
+        <select id="viewSelect" aria-label="阅读模式">
+          <option value="reader">阅读</option>
+          <option value="thumb">缩略图</option>
+        </select>
+      </div>
+      <section class="reader" id="reader"></section>
+    </main>
+  </div>
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+name = "comic-crawler"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-06-01"
+
+[[r2_buckets]]
+binding = "COMIC_ASSETS"
+bucket_name = "comic-crawler-assets"

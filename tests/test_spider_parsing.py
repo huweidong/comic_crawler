@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from scrapy.http import HtmlResponse, Request
 
-from comic_crawler.spiders.ququ_book import parse_chapter_links, parse_image_urls
+from comic_crawler.spiders.ququ_book import (
+    local_chapter_complete,
+    parse_chapter_links,
+    parse_image_urls,
+    select_chapters_for_crawl,
+)
 
 
 def make_response(url: str, html: str) -> HtmlResponse:
@@ -63,3 +68,41 @@ def test_parse_image_urls_prefers_real_src_and_filters_placeholder():
         "https://res2.tupian.run/a/001.jpg",
         "https://res2.tupian.run/a/002.jpg",
     ]
+
+
+def test_local_chapter_complete_uses_chapter_json_and_image_count(tmp_path):
+    chapter_dir = tmp_path / "0765_chapter_1104698_765 将军"
+    images_dir = chapter_dir / "images"
+    images_dir.mkdir(parents=True)
+    (chapter_dir / "chapter.json").write_text('{"image_count": 2}', encoding="utf-8")
+    (images_dir / "0001.jpg").write_bytes(b"image")
+
+    chapter = {"chapter_id": "1104698", "original_index": 765, "title": "765 将军"}
+    assert not local_chapter_complete(tmp_path, chapter)
+
+    (images_dir / "0002.jpg").write_bytes(b"image")
+    assert local_chapter_complete(tmp_path, chapter)
+
+
+def test_incremental_selection_stops_at_first_complete_chapter(tmp_path):
+    complete_dir = tmp_path / "0764_chapter_1104053_764 诀别"
+    images_dir = complete_dir / "images"
+    images_dir.mkdir(parents=True)
+    (complete_dir / "chapter.json").write_text('{"image_count": 1}', encoding="utf-8")
+    (images_dir / "0001.jpg").write_bytes(b"image")
+
+    chapters = [
+        {"chapter_id": "1104053", "original_index": 764, "title": "764 诀别"},
+        {"chapter_id": "1104698", "original_index": 765, "title": "765 将军"},
+    ]
+
+    selected = select_chapters_for_crawl(
+        chapters,
+        root_dir=tmp_path,
+        chapter_order="desc",
+        max_chapters=20,
+        incremental=True,
+        stop_on_existing=True,
+    )
+
+    assert [chapter["chapter_id"] for chapter in selected] == ["1104698"]

@@ -25,6 +25,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Parse metadata only; do not download images.",
     )
+    parser.add_argument(
+        "--incremental",
+        action="store_true",
+        help="Only crawl newer/incomplete chapters and stop at the first complete local chapter.",
+    )
     return parser.parse_args()
 
 
@@ -44,6 +49,9 @@ def main() -> None:
         config["crawl"]["chapter_order"] = args.chapter_order
     if args.no_images:
         config["crawl"]["download_images"] = False
+    if args.incremental:
+        config["crawl"]["mode"] = "incremental"
+        config["crawl"]["stop_on_existing_chapter"] = True
 
     settings = get_project_settings()
     request_config = config.get("request", {})

@@ -1,0 +1,14 @@
+{
+  "name": "comic-crawler-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build_web.mjs",
+    "pages:dev": "wrangler pages dev dist --r2=COMIC_ASSETS",
+    "pages:deploy": "wrangler pages deploy dist"
+  },
+  "devDependencies": {
+    "wrangler": "^4.22.0"
+  }
+}

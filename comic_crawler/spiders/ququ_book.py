@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import re
 from typing import Any
@@ -16,6 +17,7 @@ from comic_crawler.paths import (
     image_path,
     site_name,
 )
+from comic_crawler.viewer import IMAGE_EXTENSIONS
 
 
 class QuquBookSpider(scrapy.Spider):
@@ -161,8 +163,17 @@ class QuquBookSpider(scrapy.Spider):
     def schedule_chapters(self, response, chapters, book_id, book_title, root_dir, site):
         chapter_order = self.config["crawl"].get("chapter_order", "desc")
         max_chapters = int(self.config["crawl"].get("max_chapters", 20))
-        crawl_queue = list(reversed(chapters)) if chapter_order == "desc" else chapters
-        for crawl_index, chapter in enumerate(crawl_queue[:max_chapters], start=1):
+        crawl_mode = self.config["crawl"].get("mode", "full")
+        stop_on_existing = bool(self.config["crawl"].get("stop_on_existing_chapter", True))
+        crawl_queue = select_chapters_for_crawl(
+            chapters,
+            root_dir=root_dir,
+            chapter_order=chapter_order,
+            max_chapters=max_chapters,
+            incremental=crawl_mode == "incremental",
+            stop_on_existing=stop_on_existing,
+        )
+        for crawl_index, chapter in enumerate(crawl_queue, start=1):
             chapter_url = response.urljoin(chapter["url"])
             meta = {
                 "book_id": book_id,
@@ -372,3 +383,55 @@ def clean_text(value: str | None) -> str:
 def leading_number(value: str) -> int | None:
     match = re.match(r"^\s*(\d+)", value)
     return int(match.group(1)) if match else None
+
+
+def select_chapters_for_crawl(
+    chapters: list[dict[str, Any]],
+    *,
+    root_dir: Path,
+    chapter_order: str,
+    max_chapters: int,
+    incremental: bool,
+    stop_on_existing: bool,
+) -> list[dict[str, Any]]:
+    crawl_queue = list(reversed(chapters)) if chapter_order == "desc" else list(chapters)
+    selected: list[dict[str, Any]] = []
+    for chapter in crawl_queue:
+        if len(selected) >= max_chapters:
+            break
+        if incremental and stop_on_existing and local_chapter_complete(root_dir, chapter):
+            break
+        selected.append(chapter)
+    return selected
+
+
+def local_chapter_complete(root_dir: Path, chapter: dict[str, Any]) -> bool:
+    chapter_dir_path = find_local_chapter_dir(root_dir, chapter)
+    if chapter_dir_path is None:
+        return False
+    metadata_path = chapter_dir_path / "chapter.json"
+    if not metadata_path.is_file():
+        return False
+    try:
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    image_count = int(metadata.get("image_count") or 0)
+    if image_count < 1:
+        return False
+    images_dir = chapter_dir_path / "images"
+    if not images_dir.is_dir():
+        return False
+    existing_images = [
+        path
+        for path in images_dir.iterdir()
+        if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS and path.stat().st_size > 0
+    ]
+    return len(existing_images) >= image_count
+
+
+def find_local_chapter_dir(root_dir: Path, chapter: dict[str, Any]) -> Path | None:
+    prefix = f"{int(chapter.get('original_index') or 0):04d}_chapter_{chapter.get('chapter_id')}_"
+    chapters_dir = root_dir / "chapters" if (root_dir / "chapters").exists() else root_dir
+    candidates = sorted(chapters_dir.glob(f"{prefix}*"))
+    return candidates[0] if candidates and candidates[0].is_dir() else None

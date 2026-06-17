@@ -6,3 +6,7 @@ data/
 downloads/
 logs/
 .viewer_server.pid
+.env.cloudflare
+dist/
+node_modules/
+.wrangler/

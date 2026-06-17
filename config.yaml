@@ -2,6 +2,8 @@ target:
   url: "https://www.ququmh.top/book/3137"
 
 crawl:
+  mode: "full"
+  stop_on_existing_chapter: true
   chapter_order: "desc"
   max_chapters: 32
   download_images: true

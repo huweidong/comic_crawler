@@ -13,6 +13,8 @@ def test_load_config_default_max_chapters(tmp_path):
 
     assert config["crawl"]["max_chapters"] == 20
     assert config["crawl"]["chapter_order"] == "desc"
+    assert config["crawl"]["mode"] == "full"
+    assert config["crawl"]["stop_on_existing_chapter"] is True
 
 
 def test_load_config_rejects_missing_file(tmp_path):
@@ -28,4 +30,15 @@ def test_load_config_rejects_invalid_order(tmp_path):
     )
 
     with pytest.raises(ValueError, match="chapter_order"):
+        load_config(config_path)
+
+
+def test_load_config_rejects_invalid_mode(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "target:\n  url: https://example.com/book/1\ncrawl:\n  mode: newest\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="crawl.mode"):
         load_config(config_path)

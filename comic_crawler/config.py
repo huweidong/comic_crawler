@@ -13,6 +13,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "chapter_order": "desc",
         "max_chapters": 20,
         "download_images": True,
+        "mode": "full",
+        "stop_on_existing_chapter": True,
     },
     "storage": {
         "output_dir": "downloads",
@@ -58,6 +60,9 @@ def validate_config(config: dict[str, Any]) -> None:
     crawl = config.get("crawl", {})
     if crawl.get("chapter_order") not in {"asc", "desc"}:
         raise ValueError("config crawl.chapter_order must be 'asc' or 'desc'")
+
+    if crawl.get("mode", "full") not in {"full", "incremental"}:
+        raise ValueError("config crawl.mode must be 'full' or 'incremental'")
 
     max_chapters = int(crawl.get("max_chapters", 20))
     if max_chapters < 1:

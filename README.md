@@ -26,6 +26,8 @@ target:
   url: "https://www.ququmh.top/book/3137"
 
 crawl:
+  mode: "full"
+  stop_on_existing_chapter: true
   chapter_order: "desc"
   max_chapters: 20
   download_images: true
@@ -52,6 +54,14 @@ python run_sample.py --config config.yaml
 ```bash
 python run_sample.py --config config.yaml --max-chapters 5
 ```
+
+只抓取最新增量章节：
+
+```bash
+python run_sample.py --config config.yaml --incremental
+```
+
+增量模式会从最新章节开始倒序检查；遇到第一个本地已经完整下载的章节后停止调度。判断“完整”的依据是该章节存在 `chapter.json`，且 `images/` 下已有图片数量不少于 `chapter.json` 里的 `image_count`。
 
 只解析元数据，不下载图片：
 
@@ -163,8 +173,156 @@ SQLite 数据库默认保存到：
 data/crawler.sqlite3
 ```
 
+## Cloudflare 在线发布
+
+项目支持把本地爬取后的资源发布到 Cloudflare R2，并把预览网站发布到 Cloudflare Pages。
+
+### 准备 Cloudflare API
+
+复制环境变量模板：
+
+```bash
+cp .env.cloudflare.example .env.cloudflare
+```
+
+然后编辑 `.env.cloudflare`：
+
+```bash
+CLOUDFLARE_ACCOUNT_ID="填你的 Account ID"
+CLOUDFLARE_API_TOKEN="填你的 Cloudflare API Token"
+R2_BUCKET="comic-crawler-assets"
+PAGES_PROJECT="comic-crawler"
+```
+
+`.env.cloudflare` 已加入 `.gitignore`，不要提交到 GitHub。
+
+Cloudflare API Token 至少需要：
+
+```text
+Account - Workers R2 Storage - Edit
+Account - Cloudflare Pages - Edit
+```
+
+### 准备 Cloudflare 资源
+
+安装 Node 依赖：
+
+```bash
+npm install
+```
+
+创建 R2 bucket：
+
+```bash
+npx wrangler r2 bucket create comic-crawler-assets
+```
+
+Cloudflare Pages 项目建议：
+
+```text
+Project name: comic-crawler
+Build command: npm run build
+Build output directory: dist
+```
+
+Pages Functions 需要绑定 R2：
+
+```text
+Variable name: COMIC_ASSETS
+Bucket: comic-crawler-assets
+```
+
+### 一键发布
+
+默认串联本地爬取、生成 manifest、上传 R2、构建网页、发布 Pages：
+
+```bash
+./scripts/publish_cloudflare.sh
+```
+
+只发布已有本地资源，不重新爬取：
+
+```bash
+./scripts/publish_cloudflare.sh --skip-crawl
+```
+
+临时覆盖章节数量：
+
+```bash
+./scripts/publish_cloudflare.sh --max-chapters 5
+```
+
+增量爬取并发布：
+
+```bash
+./scripts/publish_cloudflare.sh --incremental
+```
+
+增量发布会执行：
+
+```text
+1. 倒序扫描最新章节，遇到第一个本地完整章节后停止
+2. 重新生成 manifest.json
+3. 只上传最新 N 个本地章节到 R2，N 来自 --max-chapters 或 config.yaml
+4. 重新构建并发布 Pages
+```
+
+R2 上传会先检查远端对象是否已经存在；已存在的 `chapter.json` 和图片会跳过，不重复上传。`manifest.json` 仍会每次上传，用来刷新章节索引。
+
+如果确实需要强制覆盖 R2 里的资源：
+
+```bash
+./scripts/publish_cloudflare.sh --incremental --max-chapters 5 --force-assets
+```
+
+只预演命令，不执行发布：
+
+```bash
+./scripts/publish_cloudflare.sh --dry-run
+```
+
+常用拆分命令：
+
+```bash
+python scripts/build_manifest.py
+./scripts/upload_r2.sh
+npm run build
+npx wrangler pages deploy dist --project-name comic-crawler
+```
+
+上传图片较多时可以提高并发：
+
+```bash
+R2_UPLOAD_CONCURRENCY=12 ./scripts/upload_r2.sh
+```
+
+如果网络中断，可以只补传指定章节前缀：
+
+```bash
+./scripts/upload_r2.sh --chapter-prefix 0764 --chapter-prefix 0765
+```
+
+也可以只上传本地最新 N 个章节：
+
+```bash
+./scripts/upload_r2.sh --latest 5
+```
+
+上传脚本默认也会跳过 R2 上已经存在的对象；需要强制覆盖时：
+
+```bash
+./scripts/upload_r2.sh --latest 5 --force
+```
+
+发布成功后打开：
+
+```text
+https://comic-crawler.pages.dev
+```
+
 ## 测试
 
 ```bash
 pytest
+npm run build
 ```
